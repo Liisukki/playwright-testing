@@ -8,7 +8,7 @@ describe("Blog app", () => {
     // Uusi käyttäjä
     await request.post("http://localhost:3003/api/users", {
       data: {
-        name: "Liisu Kotilainen",
+        name: "Liisa Kotilainen",
         username: "liisukki",
         password: "salainen",
       },
@@ -36,7 +36,7 @@ describe("Blog app", () => {
       await page.getByLabel("Password:").fill("salainen");
 
       // Koita kirjautua
-      await page.getByRole("button", { name: /login/i }).click();
+      await page.getByRole("button", { name: "login" }).click();
 
       // Tarkista, että kirjautuminen onnistui ja käyttäjän nimi näkyy
       await expect(page.getByText("Liisa Kotilainen logged in")).toBeVisible();
@@ -48,7 +48,7 @@ describe("Blog app", () => {
       await page.getByLabel("Password:").fill("väärä");
 
       // Koita kirjautua
-      await page.getByRole("button", { name: /login/i }).click();
+      await page.getByRole("button", { name: "login" }).click();
 
       // Tarkista, että ilmoitus epäonnistuneesta kirjautumisesta näkyy
       const errorNotification = await page.getByText(
@@ -59,5 +59,28 @@ describe("Blog app", () => {
       // Varmista, että käyttäjä ei ole kirjautunut sisään
       await expect(page.getByText("Liisa Kotilainen logged in")).toHaveCount(0);
     });
+  });
+
+  test("a new blog can be created", async ({ page }) => {
+    // Kirjaudu
+    await page.getByLabel("Username:").fill("liisukki");
+    await page.getByLabel("Password:").fill("salainen");
+    await page.getByRole("button", { name: "login" }).click();
+
+    // Varmista, että kirjautuminen onnistui
+    await expect(page.getByText("Liisa Kotilainen logged in")).toBeVisible();
+
+    // Täytä tiedot lomakkeeseen
+    await page.getByRole("button", { name: "create a new blog" }).click();
+
+    await page.getByLabel("Title:").fill("Uusi Testi blogi");
+    await page.getByLabel("Author:").fill("Liisa Kotilainen");
+    await page.getByLabel("Url:").fill("http://example.com");
+
+    // Lähetä lomake
+    await page.getByRole("button", { name: "create blog" }).click();
+
+    // Varmista, että luotu blogi näkyy blogilistalla
+    await expect(page.getByRole('heading', { name: "Uusi Testi blogi" })).toBeVisible();
   });
 });

@@ -3,9 +3,7 @@ const { test, expect, beforeEach, describe } = require("@playwright/test");
 describe("Blog app", () => {
   beforeEach(async ({ page, request }) => {
     // Nollaa tietokanta
-    await request.post("http://localhost:3003/api/testing/reset");
-
-    // Uusi käyttäjä
+    await request.post("http://localhost:5173/api/tests/reset");
     await request.post("http://localhost:3003/api/users", {
       data: {
         name: "Liisa Kotilainen",
@@ -19,35 +17,30 @@ describe("Blog app", () => {
   });
 
   test("Login form is shown", async ({ page }) => {
-    // Tarkista, että kirjautumislomakkeen elementit näkyvät
-    const usernameInput = await page.getByLabel("Username:");
-    const passwordInput = await page.getByLabel("Password:");
-    const loginButton = await page.getByRole("button", { name: /login/i });
+    await page.getByTestId("username").fill("liisukki");
+    await page.getByTestId("password").fill("salainen");
 
-    await expect(usernameInput).toBeVisible();
-    await expect(passwordInput).toBeVisible();
-    await expect(loginButton).toBeVisible();
+    await page.getByRole("button", { name: "login" }).click();
+
+    await expect(page.getByText("Liisa Kotilainen logged in")).toBeVisible();
   });
 
   describe("Login", () => {
     // Oikeat kirjautumistiedot
     test("succeeds with correct credentials", async ({ page }) => {
-      await page.getByLabel("Username:").fill("liisukki");
-      await page.getByLabel("Password:").fill("salainen");
+      await page.getByTestId("username").fill("liisukki");
+      await page.getByTestId("password").fill("salainen");
 
-      // Koita kirjautua
       await page.getByRole("button", { name: "login" }).click();
 
-      // Tarkista, että kirjautuminen onnistui ja käyttäjän nimi näkyy
       await expect(page.getByText("Liisa Kotilainen logged in")).toBeVisible();
     });
 
     test("fails with wrong credentials", async ({ page }) => {
       // Väärät kirjautumistiedot
-      await page.getByLabel("Username:").fill("liisukki");
-      await page.getByLabel("Password:").fill("väärä");
+      await page.getByTestId("username").fill("liisukki");
+      await page.getByTestId("password").fill("väärä");
 
-      // Koita kirjautua
       await page.getByRole("button", { name: "login" }).click();
 
       // Tarkista, että ilmoitus epäonnistuneesta kirjautumisesta näkyy
@@ -61,26 +54,27 @@ describe("Blog app", () => {
     });
   });
 
-  test("a new blog can be created", async ({ page }) => {
-    // Kirjaudu
-    await page.getByLabel("Username:").fill("liisukki");
-    await page.getByLabel("Password:").fill("salainen");
-    await page.getByRole("button", { name: "login" }).click();
+  describe("When logged in", () => {
+    beforeEach(async ({ page }) => {
+      await page.getByTestId("username").fill("liisukki");
+      await page.getByTestId("password").fill("salainen");
+      await page.getByRole("button", { name: "login" }).click();
+    });
 
-    // Varmista, että kirjautuminen onnistui
-    await expect(page.getByText("Liisa Kotilainen logged in")).toBeVisible();
+    test("a new blog can be created", async ({ page }) => {
+      // Klikkaa "Create a new blog" -painiketta
+      await page.getByRole("button", { name: "create a new blog" }).click();
 
-    // Täytä tiedot lomakkeeseen
-    await page.getByRole("button", { name: "create a new blog" }).click();
+      // Täytä blogin tiedot lomakkeelle
+      await page.getByTestId("title").fill("X Testi blogi");
+      await page.getByTestId("author").fill("Liisa Kotilainen");
+      await page.getByTestId("url").fill("http://example.com");
 
-    await page.getByLabel("Title:").fill("Uusi Testi blogi");
-    await page.getByLabel("Author:").fill("Liisa Kotilainen");
-    await page.getByLabel("Url:").fill("http://example.com");
+      // Lähetä lomake
+      await page.getByRole("button", { name: "Save" }).click();
 
-    // Lähetä lomake
-    await page.getByRole("button", { name: "create blog" }).click();
-
-    // Varmista, että luotu blogi näkyy blogilistalla
-    await expect(page.getByRole('heading', { name: "Uusi Testi blogi" })).toBeVisible();
+      // Varmista, että uusi blogi näkyy listassa
+      await expect(page.getByText("X Testi blogi").nth(0)).toBeVisible();
+    });
   });
 });
